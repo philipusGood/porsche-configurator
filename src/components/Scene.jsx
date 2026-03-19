@@ -9,8 +9,8 @@ export default function Scene() {
       <Canvas
         shadows
         camera={{
-          position: [5, 3, 8],
-          fov: 45,
+          position: [6, 2.5, 9],
+          fov: 42,
         }}
         gl={{
           antialias: true,
@@ -18,23 +18,30 @@ export default function Scene() {
         }}
       >
         {/* Lighting */}
-        <ambientLight intensity={0.4} />
+        <ambientLight intensity={0.5} />
         <directionalLight
-          position={[10, 10, 5]}
-          intensity={1.5}
+          position={[8, 12, 6]}
+          intensity={1.8}
           castShadow
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
+          shadow-camera-near={0.5}
+          shadow-camera-far={30}
+          shadow-camera-left={-6}
+          shadow-camera-right={6}
+          shadow-camera-top={6}
+          shadow-camera-bottom={-6}
         />
-        <directionalLight position={[-5, 8, -5]} intensity={0.6} color="#b3d9ff" />
-        <pointLight position={[0, 5, -5]} intensity={0.4} color="#ffaa44" />
+        <directionalLight position={[-6, 4, -4]} intensity={0.5} color="#aaccff" />
+        <pointLight position={[0, 0.5, 0]} intensity={0.3} color="#664422" />
 
         {/* Controls */}
         <OrbitControls
           enablePan={false}
-          minDistance={3}
-          maxDistance={15}
-          target={[0, 0.5, 0]}
+          minDistance={4}
+          maxDistance={12}
+          maxPolarAngle={Math.PI * 0.48}
+          target={[0, 0.6, 0]}
         />
 
         {/* Car */}
@@ -42,11 +49,11 @@ export default function Scene() {
 
         {/* Ground Plane */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
-          <planeGeometry args={[30, 30]} />
+          <planeGeometry args={[40, 40]} />
           <meshStandardMaterial
-            color="#222222"
-            roughness={1}
-            metalness={0}
+            color="#1a1a1a"
+            roughness={0.8}
+            metalness={0.1}
           />
         </mesh>
 
@@ -54,7 +61,7 @@ export default function Scene() {
         <Environment preset="city" />
 
         {/* Fog */}
-        <fog attach="fog" args={['#111111', 15, 40]} />
+        <fog attach="fog" args={['#111111', 18, 45]} />
       </Canvas>
     </div>
   )

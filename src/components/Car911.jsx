@@ -56,6 +56,7 @@ function create911BodyGeo() {
   return geo
 }
 
+
 export default function Car911() {
   const bodyGroupRef = useRef()
   const {
@@ -236,45 +237,124 @@ export default function Car911() {
   const renderWheel = (position) => {
     const { torusR, tubeR, outerR } = wheelDims
     const rimR = outerR - tubeR - 0.01
-    const rimWidth = 0.20
+    const rimWidth = 0.22
 
     return (
-      <group position={position} key={`wheel-${position.join('-')}`}>
-        {/* Tire */}
-        <mesh rotation={[Math.PI / 2, 0, 0]} castShadow>
-          <torusGeometry args={[torusR, tubeR, 18, 36]} />
+      <group position={position} key={`wheel-${position.join('-')}`} rotation={[0, 0, Math.PI / 2]}>
+        {/* Tire — always the same */}
+        <mesh castShadow>
+          <torusGeometry args={[torusR, tubeR, 20, 40]} />
           <primitive object={tireMaterial} attach="material" />
         </mesh>
 
-        {/* Rim */}
+        {/* Rim base disc */}
         <mesh castShadow>
-          <cylinderGeometry args={[rimR, rimR, rimWidth, 16]} />
+          <cylinderGeometry args={[rimR * 0.92, rimR * 0.92, rimWidth * 0.6, 32]} />
           <primitive object={wheelMaterial} attach="material" />
         </mesh>
 
-        {/* Spokes (OEM style) */}
+        {/* OEM: 5 thin curved spokes */}
         {wheelType === 'oem' && (
-          <>
-            {[0, 1, 2, 3, 4].map((i) => (
-              <mesh
-                key={`spoke-${i}`}
-                rotation={[(Math.PI * 2 * i) / 5, 0, 0]}
-                position={[0, 0, 0]}
-                castShadow
-              >
-                <boxGeometry args={[0.02, 0.02, rimR * 1.8]} />
-                <primitive object={wheelMaterial} attach="material" />
-              </mesh>
-            ))}
-          </>
+          <group>
+            {[0, 1, 2, 3, 4].map((i) => {
+              const angle = (i / 5) * Math.PI * 2
+              return (
+                <mesh
+                  key={i}
+                  position={[0, Math.cos(angle) * rimR * 0.45, Math.sin(angle) * rimR * 0.45]}
+                  rotation={[angle, 0, 0]}
+                  castShadow
+                >
+                  <boxGeometry args={[rimWidth * 0.55, rimR * 0.85, rimR * 0.14]} />
+                  <primitive object={wheelMaterial} attach="material" />
+                </mesh>
+              )
+            })}
+            {/* Outer rim lip */}
+            <mesh castShadow>
+              <torusGeometry args={[rimR, 0.018, 8, 32]} />
+              <primitive object={wheelMaterial} attach="material" />
+            </mesh>
+          </group>
         )}
 
-        {/* Beadlock ring */}
+        {/* FUCHS: classic wide fan spokes — the iconic Porsche 5-spoke */}
+        {wheelType === 'fuchs' && (
+          <group>
+            {[0, 1, 2, 3, 4].map((i) => {
+              const angle = (i / 5) * Math.PI * 2
+              return (
+                <group key={i} rotation={[angle, 0, 0]}>
+                  {/* Wide outer blade */}
+                  <mesh position={[0, rimR * 0.55, 0]} castShadow>
+                    <boxGeometry args={[rimWidth * 0.5, rimR * 0.55, rimR * 0.38]} />
+                    <primitive object={wheelMaterial} attach="material" />
+                  </mesh>
+                  {/* Narrow inner stem */}
+                  <mesh position={[0, rimR * 0.18, 0]} castShadow>
+                    <boxGeometry args={[rimWidth * 0.45, rimR * 0.32, rimR * 0.14]} />
+                    <primitive object={wheelMaterial} attach="material" />
+                  </mesh>
+                </group>
+              )
+            })}
+            {/* Dark center cap */}
+            <mesh castShadow>
+              <cylinderGeometry args={[rimR * 0.18, rimR * 0.18, rimWidth * 0.65, 16]} />
+              <meshStandardMaterial color="#111111" metalness={0.5} roughness={0.5} />
+            </mesh>
+            {/* Outer lip */}
+            <mesh castShadow>
+              <torusGeometry args={[rimR, 0.022, 8, 32]} />
+              <primitive object={wheelMaterial} attach="material" />
+            </mesh>
+          </group>
+        )}
+
+        {/* BEADLOCK: off-road chunky spokes + outer locking ring */}
         {wheelType === 'beadlock' && (
-          <mesh rotation={[Math.PI / 2, 0, 0]} castShadow>
-            <torusGeometry args={[rimR, 0.025, 8, 16]} />
-            <primitive object={beadlockMaterial} attach="material" />
-          </mesh>
+          <group>
+            {/* 6 chunky spokes */}
+            {[0, 1, 2, 3, 4, 5].map((i) => {
+              const angle = (i / 6) * Math.PI * 2
+              return (
+                <mesh
+                  key={i}
+                  position={[0, Math.cos(angle) * rimR * 0.48, Math.sin(angle) * rimR * 0.48]}
+                  rotation={[angle, 0, 0]}
+                  castShadow
+                >
+                  <boxGeometry args={[rimWidth * 0.5, rimR * 0.88, rimR * 0.22]} />
+                  <primitive object={wheelMaterial} attach="material" />
+                </mesh>
+              )
+            })}
+            {/* Beadlock outer ring */}
+            <mesh castShadow>
+              <torusGeometry args={[rimR * 0.97, 0.032, 8, 32]} />
+              <primitive object={beadlockMaterial} attach="material" />
+            </mesh>
+            {/* Bolt ring (16 small cylinders around edge) */}
+            {[...Array(16)].map((_, i) => {
+              const angle = (i / 16) * Math.PI * 2
+              return (
+                <mesh
+                  key={i}
+                  position={[rimWidth * 0.3, Math.cos(angle) * rimR * 0.97, Math.sin(angle) * rimR * 0.97]}
+                  rotation={[0, 0, 0]}
+                  castShadow
+                >
+                  <cylinderGeometry args={[0.012, 0.012, 0.04, 6]} />
+                  <meshStandardMaterial color="#888888" metalness={0.9} roughness={0.2} />
+                </mesh>
+              )
+            })}
+            {/* Dark center hub */}
+            <mesh castShadow>
+              <cylinderGeometry args={[rimR * 0.22, rimR * 0.22, rimWidth * 0.7, 8]} />
+              <meshStandardMaterial color="#222222" metalness={0.6} roughness={0.4} />
+            </mesh>
+          </group>
         )}
       </group>
     )
@@ -285,9 +365,49 @@ export default function Car911() {
   const wheelOffset = wheelSize > 17 ? 0.02 : 0
 
   return (
-    <group ref={bodyGroupRef}>
+    <group ref={bodyGroupRef} scale={[1, 1.08, 1.12]}>
       {/* Main Body */}
       <mesh geometry={bodyGeo} material={bodyMaterial} castShadow receiveShadow />
+
+      {/* Front fascia */}
+      <mesh position={[0, 0.38, 2.18]} castShadow>
+        <cylinderGeometry args={[0.62, 0.72, 0.28, 24, 1, false, -Math.PI * 0.35, Math.PI * 0.7]} />
+        <primitive object={bodyMaterial} attach="material" />
+      </mesh>
+      <mesh position={[0, 0.22, 2.12]} castShadow>
+        <boxGeometry args={[1.50, 0.18, 0.12]} />
+        <primitive object={bodyMaterial} attach="material" />
+      </mesh>
+
+      {/* Rear fascia */}
+      <mesh position={[0, 0.42, -2.14]} castShadow>
+        <cylinderGeometry args={[0.68, 0.74, 0.32, 24, 1, false, Math.PI * 0.65, Math.PI * 0.7]} />
+        <primitive object={bodyMaterial} attach="material" />
+      </mesh>
+      <mesh position={[0, 0.24, -2.10]} castShadow>
+        <boxGeometry args={[1.60, 0.20, 0.12]} />
+        <primitive object={bodyMaterial} attach="material" />
+      </mesh>
+
+      {/* Rear fender flares */}
+      <mesh position={[-0.90, 0.36, -0.995]} castShadow>
+        <boxGeometry args={[0.06, 0.52, 0.90]} />
+        <primitive object={bodyMaterial} attach="material" />
+      </mesh>
+      <mesh position={[0.90, 0.36, -0.995]} castShadow>
+        <boxGeometry args={[0.06, 0.52, 0.90]} />
+        <primitive object={bodyMaterial} attach="material" />
+      </mesh>
+
+      {/* Front fender flares */}
+      <mesh position={[-0.89, 0.36, 1.355]} castShadow>
+        <boxGeometry args={[0.05, 0.48, 0.80]} />
+        <primitive object={bodyMaterial} attach="material" />
+      </mesh>
+      <mesh position={[0.89, 0.36, 1.355]} castShadow>
+        <boxGeometry args={[0.05, 0.48, 0.80]} />
+        <primitive object={bodyMaterial} attach="material" />
+      </mesh>
 
       {/* Windshield */}
       <mesh
@@ -425,30 +545,27 @@ export default function Car911() {
 
       {/* Roof Rack */}
       {hasRoofRack && (
-        <group position={[0, 1.26, -0.20]}>
-          {/* Main frame - front */}
-          <mesh position={[0, 0, 0.80]} castShadow>
-            <cylinderGeometry args={[0.015, 0.015, 1.60]} />
+        <group position={[0, 1.30, -0.15]}>
+          {/* Side rails (running front-back) */}
+          <mesh position={[0.58, 0, 0]} rotation={[Math.PI/2, 0, 0]} castShadow>
+            <cylinderGeometry args={[0.018, 0.018, 1.55, 8]} />
             <primitive object={roofRackMaterial} attach="material" />
           </mesh>
-          {/* Main frame - rear */}
-          <mesh position={[0, 0, -0.80]} castShadow>
-            <cylinderGeometry args={[0.015, 0.015, 1.60]} />
+          <mesh position={[-0.58, 0, 0]} rotation={[Math.PI/2, 0, 0]} castShadow>
+            <cylinderGeometry args={[0.018, 0.018, 1.55, 8]} />
             <primitive object={roofRackMaterial} attach="material" />
           </mesh>
-          {/* Side rails */}
-          <mesh position={[0.65, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-            <cylinderGeometry args={[0.015, 0.015, 1.30]} />
-            <primitive object={roofRackMaterial} attach="material" />
-          </mesh>
-          <mesh position={[-0.65, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-            <cylinderGeometry args={[0.015, 0.015, 1.30]} />
-            <primitive object={roofRackMaterial} attach="material" />
-          </mesh>
-          {/* Crossbars */}
-          {[0, 0.30, 0.60].map((z, i) => (
-            <mesh key={`crossbar-${i}`} position={[0, 0, z]} rotation={[0, 0, Math.PI / 2]} castShadow>
-              <cylinderGeometry args={[0.012, 0.012, 1.26]} />
+          {/* Cross bars */}
+          {[-0.55, -0.18, 0.18, 0.55].map((z, i) => (
+            <mesh key={i} position={[0, 0, z]} rotation={[0, 0, Math.PI/2]} castShadow>
+              <cylinderGeometry args={[0.015, 0.015, 1.18, 8]} />
+              <primitive object={roofRackMaterial} attach="material" />
+            </mesh>
+          ))}
+          {/* Corner mounts (4 legs) */}
+          {[[-0.58, 0.55], [-0.58, -0.55], [0.58, 0.55], [0.58, -0.55]].map(([x, z], i) => (
+            <mesh key={i} position={[x, -0.06, z]} castShadow>
+              <cylinderGeometry args={[0.02, 0.02, 0.12, 6]} />
               <primitive object={roofRackMaterial} attach="material" />
             </mesh>
           ))}
@@ -457,32 +574,36 @@ export default function Car911() {
 
       {/* Safari Lights */}
       {hasSafariLights && (
-        <group position={[0, 1.28, 0.80]}>
-          {/* Light bar */}
-          <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
-            <cylinderGeometry args={[0.02, 0.02, 1.20]} />
+        <group position={[0, 1.30, 0.85]}>
+          {/* Mounting brackets */}
+          <mesh position={[-0.50, -0.06, 0]} castShadow>
+            <boxGeometry args={[0.04, 0.12, 0.06]} />
             <primitive object={roofRackMaterial} attach="material" />
           </mesh>
-          {/* Light 1 */}
-          <mesh position={[-0.36, 0, 0]} castShadow>
-            <sphereGeometry args={[0.07, 12, 12]} />
-            <primitive object={safariLightMaterial} attach="material" />
+          <mesh position={[0.50, -0.06, 0]} castShadow>
+            <boxGeometry args={[0.04, 0.12, 0.06]} />
+            <primitive object={roofRackMaterial} attach="material" />
           </mesh>
-          {/* Light 2 */}
-          <mesh position={[-0.12, 0, 0]} castShadow>
-            <sphereGeometry args={[0.07, 12, 12]} />
-            <primitive object={safariLightMaterial} attach="material" />
+          {/* Light bar tube */}
+          <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
+            <cylinderGeometry args={[0.022, 0.022, 1.10, 8]} />
+            <primitive object={roofRackMaterial} attach="material" />
           </mesh>
-          {/* Light 3 */}
-          <mesh position={[0.12, 0, 0]} castShadow>
-            <sphereGeometry args={[0.07, 12, 12]} />
-            <primitive object={safariLightMaterial} attach="material" />
-          </mesh>
-          {/* Light 4 */}
-          <mesh position={[0.36, 0, 0]} castShadow>
-            <sphereGeometry args={[0.07, 12, 12]} />
-            <primitive object={safariLightMaterial} attach="material" />
-          </mesh>
+          {/* 4 round lights with housing */}
+          {[-0.38, -0.13, 0.13, 0.38].map((x, i) => (
+            <group key={i} position={[x, 0, 0.04]}>
+              {/* Housing */}
+              <mesh castShadow>
+                <cylinderGeometry args={[0.075, 0.075, 0.05, 12]} />
+                <meshStandardMaterial color="#222222" metalness={0.8} roughness={0.3} />
+              </mesh>
+              {/* Lens */}
+              <mesh position={[0, 0, 0.035]} castShadow>
+                <cylinderGeometry args={[0.062, 0.062, 0.02, 12]} />
+                <primitive object={safariLightMaterial} attach="material" />
+              </mesh>
+            </group>
+          ))}
         </group>
       )}
 
