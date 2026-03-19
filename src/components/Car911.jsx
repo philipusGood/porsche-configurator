@@ -280,14 +280,9 @@ export default function Car911() {
     )
   }
 
-  // Wheel positions
-  const wheelOffset = wheelSize > 17 ? 0.02 : 0
-  const frontLeftPos = [-0.885 - wheelOffset, outerR + bodyGroupRef.current?.position.y || 0, 1.355]
-  const frontRightPos = [0.885 + wheelOffset, outerR + bodyGroupRef.current?.position.y || 0, 1.355]
-  const rearLeftPos = [-0.885 - wheelOffset, outerR + bodyGroupRef.current?.position.y || 0, -0.995]
-  const rearRightPos = [0.885 + wheelOffset, outerR + bodyGroupRef.current?.position.y || 0, -0.995]
-
+  // Wheel dimensions
   const { outerR } = wheelDims
+  const wheelOffset = wheelSize > 17 ? 0.02 : 0
 
   return (
     <group ref={bodyGroupRef}>
@@ -335,19 +330,15 @@ export default function Car911() {
       </mesh>
 
       {/* Headlights (Left) */}
-      <mesh position={[-0.50, 0.52, 2.17]} castShadow>
+      <mesh position={[-0.50, 0.48, 2.17]} scale={[1, 0.65, 1]} castShadow>
         <sphereGeometry args={[0.18, 16, 12]} />
-        <mesh scale={[1, 0.65, 1]}>
-          <primitive object={headlightMaterial} attach="material" />
-        </mesh>
+        <primitive object={headlightMaterial} attach="material" />
       </mesh>
 
       {/* Headlights (Right) */}
-      <mesh position={[0.50, 0.52, 2.17]} castShadow>
+      <mesh position={[0.50, 0.48, 2.17]} scale={[1, 0.65, 1]} castShadow>
         <sphereGeometry args={[0.18, 16, 12]} />
-        <mesh scale={[1, 0.65, 1]}>
-          <primitive object={headlightMaterial} attach="material" />
-        </mesh>
+        <primitive object={headlightMaterial} attach="material" />
       </mesh>
 
       {/* Taillights (Left) */}
