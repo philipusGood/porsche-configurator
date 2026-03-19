@@ -1,7 +1,6 @@
-version: '3.8'
 services:
   configurator:
-    build: .
+    image: ghcr.io/philipusgood/porsche-configurator:latest
     ports:
       - "3001:80"
     restart: unless-stopped

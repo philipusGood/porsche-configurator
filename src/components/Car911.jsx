@@ -240,15 +240,15 @@ export default function Car911() {
     const rimWidth = 0.22
 
     return (
-      <group position={position} key={`wheel-${position.join('-')}`} rotation={[0, 0, Math.PI / 2]}>
-        {/* Tire — always the same */}
-        <mesh castShadow>
+      <group position={position} key={`wheel-${position.join('-')}`}>
+        {/* Tire — torus hole faces along X (axle direction) */}
+        <mesh rotation={[0, Math.PI / 2, 0]} castShadow>
           <torusGeometry args={[torusR, tubeR, 20, 40]} />
           <primitive object={tireMaterial} attach="material" />
         </mesh>
 
-        {/* Rim base disc */}
-        <mesh castShadow>
+        {/* Rim base disc — cylinder axis along X */}
+        <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
           <cylinderGeometry args={[rimR * 0.92, rimR * 0.92, rimWidth * 0.6, 32]} />
           <primitive object={wheelMaterial} attach="material" />
         </mesh>
@@ -271,7 +271,7 @@ export default function Car911() {
               )
             })}
             {/* Outer rim lip */}
-            <mesh castShadow>
+            <mesh rotation={[0, Math.PI / 2, 0]} castShadow>
               <torusGeometry args={[rimR, 0.018, 8, 32]} />
               <primitive object={wheelMaterial} attach="material" />
             </mesh>
@@ -299,12 +299,12 @@ export default function Car911() {
               )
             })}
             {/* Dark center cap */}
-            <mesh castShadow>
+            <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
               <cylinderGeometry args={[rimR * 0.18, rimR * 0.18, rimWidth * 0.65, 16]} />
               <meshStandardMaterial color="#111111" metalness={0.5} roughness={0.5} />
             </mesh>
             {/* Outer lip */}
-            <mesh castShadow>
+            <mesh rotation={[0, Math.PI / 2, 0]} castShadow>
               <torusGeometry args={[rimR, 0.022, 8, 32]} />
               <primitive object={wheelMaterial} attach="material" />
             </mesh>
@@ -330,7 +330,7 @@ export default function Car911() {
               )
             })}
             {/* Beadlock outer ring */}
-            <mesh castShadow>
+            <mesh rotation={[0, Math.PI / 2, 0]} castShadow>
               <torusGeometry args={[rimR * 0.97, 0.032, 8, 32]} />
               <primitive object={beadlockMaterial} attach="material" />
             </mesh>
@@ -341,7 +341,7 @@ export default function Car911() {
                 <mesh
                   key={i}
                   position={[rimWidth * 0.3, Math.cos(angle) * rimR * 0.97, Math.sin(angle) * rimR * 0.97]}
-                  rotation={[0, 0, 0]}
+                  rotation={[0, 0, Math.PI / 2]}
                   castShadow
                 >
                   <cylinderGeometry args={[0.012, 0.012, 0.04, 6]} />
@@ -350,7 +350,7 @@ export default function Car911() {
               )
             })}
             {/* Dark center hub */}
-            <mesh castShadow>
+            <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
               <cylinderGeometry args={[rimR * 0.22, rimR * 0.22, rimWidth * 0.7, 8]} />
               <meshStandardMaterial color="#222222" metalness={0.6} roughness={0.4} />
             </mesh>
