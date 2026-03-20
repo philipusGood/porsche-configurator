@@ -132,8 +132,16 @@ export default function Car911() {
   const bodyGeo = useMemo(() => createLoftedBodyGeo(), [])
 
   // ── Materials ──────────────────────────────────────────────────
-  const bodyMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: bodyColor, metalness: 0.78, roughness: 0.20, envMapIntensity: 1.2,
+  // MeshPhysicalMaterial gives us clearcoat — the single biggest step
+  // toward photorealistic car paint (simulates lacquer over basecoat)
+  const bodyMaterial = useMemo(() => new THREE.MeshPhysicalMaterial({
+    color: bodyColor,
+    metalness: 0.15,
+    roughness: 0.12,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.06,
+    reflectivity: 1.0,
+    envMapIntensity: 1.8,
   }), [bodyColor])
 
   // Glass: light tint, quite transparent, visible from both sides
@@ -377,42 +385,58 @@ export default function Car911() {
       {renderWheel([0.885 + wheelOffset, outerR, -0.995])}
 
       {/* ── SPOILER ── */}
+      {/*
+        Group sits on top of the engine lid (topY ≈ 0.87 at z≈-1.63).
+        All spoiler geometry: X = width (left-right), Z = depth (front-back).
+        Negative rotation.x lifts the trailing edge (-Z side = rearmost).
+      */}
       {spoiler !== 'none' && (
-        <group position={[0, 0.73, -1.93]}>
+        <group position={[0, 0.87, -1.72]}>
+          {/* Stock lip — narrow strip across full rear width */}
           {spoiler === 'stock' && (
             <mesh castShadow>
-              <boxGeometry args={[0.06, 0.06, 1.52]} />
+              <boxGeometry args={[1.52, 0.06, 0.06]} />
               <primitive object={bodyMaterial} attach="material" />
             </mesh>
           )}
+
+          {/* Ducktail — wide flat shelf angled upward at trailing edge */}
           {spoiler === 'ducktail' && (
             <>
+              {/* Main shelf: 1.50 wide, 0.26 deep, tilts trailing edge up */}
               <mesh rotation={[-Math.PI * 0.10, 0, 0]} castShadow>
-                <boxGeometry args={[0.30, 0.07, 1.52]} />
+                <boxGeometry args={[1.50, 0.07, 0.26]} />
                 <primitive object={bodyMaterial} attach="material" />
               </mesh>
-              <mesh position={[-0.68, 0.04, 0]} castShadow>
+              {/* Left end plate */}
+              <mesh position={[-0.73, 0.04, -0.04]} castShadow>
                 <boxGeometry args={[0.04, 0.14, 0.22]} />
                 <primitive object={bodyMaterial} attach="material" />
               </mesh>
-              <mesh position={[0.68, 0.04, 0]} castShadow>
+              {/* Right end plate */}
+              <mesh position={[0.73, 0.04, -0.04]} castShadow>
                 <boxGeometry args={[0.04, 0.14, 0.22]} />
                 <primitive object={bodyMaterial} attach="material" />
               </mesh>
             </>
           )}
+
+          {/* Whale tail — wider high-mounted wing, more aggressive angle */}
           {spoiler === 'whaletail' && (
             <>
+              {/* Main shelf */}
               <mesh rotation={[-Math.PI * 0.13, 0, 0]} castShadow>
-                <boxGeometry args={[0.64, 0.07, 1.56]} />
+                <boxGeometry args={[1.54, 0.07, 0.32]} />
                 <primitive object={bodyMaterial} attach="material" />
               </mesh>
-              <mesh position={[-1.06, 0.09, 0]} castShadow>
-                <boxGeometry args={[0.04, 0.22, 0.24]} />
+              {/* Left end plate */}
+              <mesh position={[-0.75, 0.10, -0.06]} castShadow>
+                <boxGeometry args={[0.04, 0.22, 0.26]} />
                 <primitive object={bodyMaterial} attach="material" />
               </mesh>
-              <mesh position={[1.06, 0.09, 0]} castShadow>
-                <boxGeometry args={[0.04, 0.22, 0.24]} />
+              {/* Right end plate */}
+              <mesh position={[0.75, 0.10, -0.06]} castShadow>
+                <boxGeometry args={[0.04, 0.22, 0.26]} />
                 <primitive object={bodyMaterial} attach="material" />
               </mesh>
             </>
