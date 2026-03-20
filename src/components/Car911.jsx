@@ -319,11 +319,7 @@ export default function Car911() {
       {/* ── BODY ── */}
       <mesh geometry={bodyGeo} material={bodyMaterial} castShadow receiveShadow />
 
-      {/* Undertray — flat floor to visually close the underside */}
-      <mesh position={[0, 0.11, 0]} receiveShadow>
-        <boxGeometry args={[1.74, 0.04, 4.02]} />
-        <meshStandardMaterial color="#111111" metalness={0.5} roughness={0.6} />
-      </mesh>
+      {/* (undertray removed — lofted body closes at bottom) */}
 
       {/* ── WINDOWS ── */}
       {/*
@@ -377,6 +373,25 @@ export default function Car911() {
         <boxGeometry args={[1.42, 0.09, 0.04]} />
         <primitive object={taillightMaterial} attach="material" />
       </mesh>
+
+      {/* ── WHEEL ARCH FLARES ── */}
+      {/*
+        Half-torus (arc=π) per corner.  rotation.y=π/2 puts the ring in
+        the YZ plane (axis along X) so the arch runs front→top→rear over
+        each tyre.  Radius = outerR+0.04 so it clears the tyre surface.
+        The flare shares the body material so it reads as part of the body.
+      */}
+      {[
+        [-0.885 - wheelOffset, outerR,  1.355],
+        [ 0.885 + wheelOffset, outerR,  1.355],
+        [-0.885 - wheelOffset, outerR, -0.995],
+        [ 0.885 + wheelOffset, outerR, -0.995],
+      ].map(([ax, ay, az], i) => (
+        <mesh key={i} position={[ax, ay, az]} rotation={[0, Math.PI / 2, 0]} castShadow>
+          <torusGeometry args={[outerR + 0.04, 0.030, 10, 28, Math.PI]} />
+          <primitive object={bodyMaterial} attach="material" />
+        </mesh>
+      ))}
 
       {/* ── WHEELS ── */}
       {renderWheel([-0.885 - wheelOffset, outerR, 1.355])}
@@ -445,19 +460,33 @@ export default function Car911() {
       )}
 
       {/* ── RACING STRIPE ── */}
-      {/* Two stripes running front→rear along the roof centreline */}
-      {hasStripe && (
-        <>
-          <mesh position={[-0.14, 1.296, -0.05]}>
-            <boxGeometry args={[0.12, 0.003, 4.10]} />
+      {/*
+        Three angled segments per stripe so each one lies flush on the
+        body surface rather than floating as a single horizontal slab.
+          Hood:      z 0.95→2.05  y≈0.72  tilted +6.8° (front is lower)
+          Roof:      z 0.65→-0.75 y≈1.292 nearly flat
+          Rear deck: z -0.80→-1.62 y≈0.955 tilted -6.3° (rear is lower)
+        Two stripes (left x=-0.14, right x=+0.14).
+      */}
+      {hasStripe && [-0.14, 0.14].map((sx) => (
+        <group key={sx} position={[sx, 0, 0]}>
+          {/* Hood segment */}
+          <mesh position={[0, 0.718, 1.50]} rotation={[Math.PI * 0.068, 0, 0]}>
+            <boxGeometry args={[0.11, 0.003, 1.10]} />
             <primitive object={stripeMaterial} attach="material" />
           </mesh>
-          <mesh position={[0.14, 1.296, -0.05]}>
-            <boxGeometry args={[0.12, 0.003, 4.10]} />
+          {/* Roof segment */}
+          <mesh position={[0, 1.292, -0.05]}>
+            <boxGeometry args={[0.11, 0.003, 1.40]} />
             <primitive object={stripeMaterial} attach="material" />
           </mesh>
-        </>
-      )}
+          {/* Rear deck segment */}
+          <mesh position={[0, 0.952, -1.21]} rotation={[-Math.PI * 0.063, 0, 0]}>
+            <boxGeometry args={[0.11, 0.003, 0.82]} />
+            <primitive object={stripeMaterial} attach="material" />
+          </mesh>
+        </group>
+      ))}
 
       {/* ── ROOF RACK ── */}
       {hasRoofRack && (

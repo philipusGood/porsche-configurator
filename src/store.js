@@ -2,7 +2,7 @@ import { create } from 'zustand'
 
 export const useCarStore = create((set) => ({
   bodyColor: '#CC2222',
-  wheelColor: '#1a1a1a',
+  wheelColor: '#8c8c8c',
   wheelType: 'oem',
   wheelSize: 17,
   liftHeight: 0,
