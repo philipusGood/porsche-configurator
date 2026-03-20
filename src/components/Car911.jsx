@@ -3,55 +3,122 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useCarStore } from '../store'
 
-function create911BodyGeo() {
-  const shape = new THREE.Shape()
+function getSectionPoints(hw, bot, shY, shW, topY, topW) {
+  const pts = []
+  const N = 28
 
-  // 996.1 side profile. X = forward along car (0=rear, 4.43=front), Y = height
-  // Going counterclockwise from rear-bottom:
-  shape.moveTo(0.10, 0.14)          // rear bumper bottom
-  shape.lineTo(0.10, 0.62)          // rear bumper face up
-  shape.lineTo(0.22, 0.68)          // engine lid start
-  // Engine lid (nearly flat, slight slope forward-up)
-  shape.bezierCurveTo(0.60, 0.72, 1.00, 0.78, 1.00, 0.78)
-  // C-pillar / rear window (steep climb)
-  shape.bezierCurveTo(1.10, 0.85, 1.25, 1.05, 1.45, 1.20)
-  // Roof (arched)
-  shape.bezierCurveTo(1.75, 1.28, 2.40, 1.30, 2.80, 1.28)
-  // Over front passengers
-  shape.bezierCurveTo(3.10, 1.26, 3.25, 1.18, 3.40, 1.05)
-  // Windshield (steep forward slope down)
-  shape.bezierCurveTo(3.55, 0.88, 3.72, 0.68, 3.82, 0.52)
-  // Hood (nearly flat, slight forward slope)
-  shape.bezierCurveTo(3.90, 0.48, 4.00, 0.45, 4.20, 0.44)
-  // Front bumper
-  shape.bezierCurveTo(4.28, 0.44, 4.33, 0.42, 4.35, 0.36)
-  shape.lineTo(4.35, 0.14)          // front bumper bottom
-  shape.lineTo(0.10, 0.14)          // bottom of car
+  for (let i = 0; i < N; i++) {
+    const angle = (i / N) * Math.PI * 2  // 0..2π, CCW, 0=right, π/2=top, π=left, 3π/2=bottom
 
-  // Wheel arch holes
-  // Rear wheel arch center: X=1.22, Y=0.38
-  const rearArch = new THREE.Path()
-  rearArch.absarc(1.22, 0.38, 0.38, 0, Math.PI * 2, true)
-  shape.holes.push(rearArch)
+    const cosA = Math.cos(angle)
+    const sinA = Math.sin(angle)
 
-  // Front wheel arch center: X=3.57, Y=0.38
-  const frontArch = new THREE.Path()
-  frontArch.absarc(3.57, 0.38, 0.35, 0, Math.PI * 2, true)
-  shape.holes.push(frontArch)
+    let x, y
 
-  const geo = new THREE.ExtrudeGeometry(shape, {
-    depth: 1.74,
-    bevelEnabled: true,
-    bevelThickness: 0.04,
-    bevelSize: 0.03,
-    bevelSegments: 3,
-  })
+    if (sinA >= 0) {
+      // Upper half (angle 0..π): body shoulder up to roof
+      // Width blends from hw (at angle=0,π) toward topW (at angle=π/2)
+      const blend = Math.pow(sinA, 0.6)  // 0 at sides, 1 at top
+      const w = hw * (1 - blend) + topW * blend
+      x = w * cosA
+      // Height from shoulder up to top
+      y = shY + (topY - shY) * sinA
+    } else {
+      // Lower half (angle π..2π): body at fender width, curving down to bottom
+      const blend = Math.pow(-sinA, 0.6)  // 0 at shoulder, 1 at very bottom
+      // Width stays at hw in lower half (fenders are the widest)
+      x = hw * cosA
+      // Height from shoulder down to bottom
+      y = shY + (bot - shY) * blend
+    }
 
-  // Center the geometry
-  geo.translate(-2.215, 0, -0.87)
-  // Rotate 90° around Y so length axis becomes Z in world space
-  geo.rotateY(Math.PI / 2)
+    pts.push([x, y])
+  }
 
+  return pts
+}
+
+function createLoftedBodyGeo() {
+  const SECTIONS = [
+    //  z      hw     bot   shY   shW   topY  topW
+    [ 2.20,  0.56,  0.10, 0.36, 0.52, 0.36, 0.52],  // front tip (no cabin)
+    [ 2.00,  0.64,  0.09, 0.42, 0.60, 0.42, 0.60],  // front bumper
+    [ 1.80,  0.74,  0.08, 0.47, 0.70, 0.47, 0.70],  // headlight area
+    [ 1.55,  0.84,  0.08, 0.52, 0.80, 0.52, 0.80],  // front fender peak
+    [ 1.35,  0.87,  0.08, 0.56, 0.83, 0.56, 0.83],  // front axle
+    [ 1.10,  0.87,  0.08, 0.58, 0.83, 0.58, 0.83],  // A-pillar base
+    [ 0.85,  0.87,  0.08, 0.58, 0.83, 1.05, 0.78],  // A-pillar (cabin starts)
+    [ 0.50,  0.87,  0.08, 0.56, 0.83, 1.22, 0.76],  // front cabin
+    [ 0.10,  0.87,  0.08, 0.56, 0.83, 1.23, 0.76],  // mid cabin
+    [-0.30,  0.87,  0.08, 0.56, 0.83, 1.22, 0.76],  // rear cabin
+    [-0.75,  0.88,  0.08, 0.57, 0.84, 1.12, 0.78],  // C-pillar
+    [-1.10,  0.90,  0.08, 0.58, 0.85, 0.90, 0.82],  // rear window
+    [-1.35,  0.91,  0.08, 0.72, 0.87, 0.72, 0.87],  // engine lid start (no cabin)
+    [-1.60,  0.91,  0.08, 0.68, 0.87, 0.68, 0.87],  // engine lid
+    [-1.85,  0.84,  0.09, 0.58, 0.80, 0.58, 0.80],  // rear upper
+    [-2.05,  0.72,  0.09, 0.48, 0.68, 0.48, 0.68],  // rear bumper
+    [-2.20,  0.58,  0.10, 0.40, 0.54, 0.40, 0.54],  // rear tip
+  ]
+  const N_PTS = 28
+
+  // 1. Generate all cross-section points
+  const sectionPoints = SECTIONS.map(([z, hw, bot, shY, shW, topY, topW]) =>
+    getSectionPoints(hw, bot, shY, shW, topY, topW)
+  )
+
+  const M = SECTIONS.length
+  const positions = []
+  const indices = []
+
+  // 2. Flatten into position array
+  for (let i = 0; i < M; i++) {
+    const z = SECTIONS[i][0]
+    for (let j = 0; j < N_PTS; j++) {
+      const [x, y] = sectionPoints[i][j]
+      positions.push(x, y, z)
+    }
+  }
+
+  // 3. Generate quad faces between adjacent sections
+  for (let i = 0; i < M - 1; i++) {
+    for (let j = 0; j < N_PTS; j++) {
+      const jNext = (j + 1) % N_PTS
+      const a = i * N_PTS + j
+      const b = i * N_PTS + jNext
+      const c = (i + 1) * N_PTS + j
+      const d = (i + 1) * N_PTS + jNext
+
+      // Two triangles per quad (ensure consistent winding for outward normals)
+      indices.push(a, c, b)
+      indices.push(b, c, d)
+    }
+  }
+
+  // 4. Front cap (fan from center to front section)
+  const frontCenterIdx = positions.length / 3
+  const frontZ = SECTIONS[0][0]
+  const frontCY = (SECTIONS[0][2] + SECTIONS[0][5]) / 2  // mid-height at front
+  positions.push(0, frontCY, frontZ)
+  for (let j = 0; j < N_PTS; j++) {
+    const jNext = (j + 1) % N_PTS
+    indices.push(frontCenterIdx, j, jNext)  // wind correctly for front-facing normal
+  }
+
+  // 5. Rear cap
+  const rearCenterIdx = positions.length / 3
+  const rearZ = SECTIONS[M - 1][0]
+  const rearOffset = (M - 1) * N_PTS
+  const rearCY = (SECTIONS[M-1][2] + SECTIONS[M-1][5]) / 2
+  positions.push(0, rearCY, rearZ)
+  for (let j = 0; j < N_PTS; j++) {
+    const jNext = (j + 1) % N_PTS
+    indices.push(rearCenterIdx, rearOffset + jNext, rearOffset + j)
+  }
+
+  // 6. Build BufferGeometry
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+  geo.setIndex(indices)
   geo.computeVertexNormals()
   return geo
 }
@@ -73,7 +140,7 @@ export default function Car911() {
     hasSkidPlate,
   } = useCarStore()
 
-  const bodyGeo = useMemo(() => create911BodyGeo(), [])
+  const bodyGeo = useMemo(() => createLoftedBodyGeo(), [])
   const bodyMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -365,49 +432,9 @@ export default function Car911() {
   const wheelOffset = wheelSize > 17 ? 0.02 : 0
 
   return (
-    <group ref={bodyGroupRef} scale={[1, 1.08, 1.12]}>
+    <group ref={bodyGroupRef} scale={[1, 1.0, 1.0]}>
       {/* Main Body */}
       <mesh geometry={bodyGeo} material={bodyMaterial} castShadow receiveShadow />
-
-      {/* Front fascia */}
-      <mesh position={[0, 0.38, 2.18]} castShadow>
-        <cylinderGeometry args={[0.62, 0.72, 0.28, 24, 1, false, -Math.PI * 0.35, Math.PI * 0.7]} />
-        <primitive object={bodyMaterial} attach="material" />
-      </mesh>
-      <mesh position={[0, 0.22, 2.12]} castShadow>
-        <boxGeometry args={[1.50, 0.18, 0.12]} />
-        <primitive object={bodyMaterial} attach="material" />
-      </mesh>
-
-      {/* Rear fascia */}
-      <mesh position={[0, 0.42, -2.14]} castShadow>
-        <cylinderGeometry args={[0.68, 0.74, 0.32, 24, 1, false, Math.PI * 0.65, Math.PI * 0.7]} />
-        <primitive object={bodyMaterial} attach="material" />
-      </mesh>
-      <mesh position={[0, 0.24, -2.10]} castShadow>
-        <boxGeometry args={[1.60, 0.20, 0.12]} />
-        <primitive object={bodyMaterial} attach="material" />
-      </mesh>
-
-      {/* Rear fender flares */}
-      <mesh position={[-0.90, 0.36, -0.995]} castShadow>
-        <boxGeometry args={[0.06, 0.52, 0.90]} />
-        <primitive object={bodyMaterial} attach="material" />
-      </mesh>
-      <mesh position={[0.90, 0.36, -0.995]} castShadow>
-        <boxGeometry args={[0.06, 0.52, 0.90]} />
-        <primitive object={bodyMaterial} attach="material" />
-      </mesh>
-
-      {/* Front fender flares */}
-      <mesh position={[-0.89, 0.36, 1.355]} castShadow>
-        <boxGeometry args={[0.05, 0.48, 0.80]} />
-        <primitive object={bodyMaterial} attach="material" />
-      </mesh>
-      <mesh position={[0.89, 0.36, 1.355]} castShadow>
-        <boxGeometry args={[0.05, 0.48, 0.80]} />
-        <primitive object={bodyMaterial} attach="material" />
-      </mesh>
 
       {/* Windshield */}
       <mesh
